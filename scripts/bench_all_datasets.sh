@@ -5,8 +5,9 @@
 # This is the "typical single input" view: it says what one genome, one
 # metagenome sample or one read set costs, rather than how the tools scale.
 #
-# Tools: tuna and KMC. FastK is not run here - it has no frozen baseline for
-# this experiment and fails on a large share of these inputs.
+# Tools: tuna, KMC and FastK. FastK fails on a large share of these inputs
+# (Tabex segfaults on the big ones), so expect fail rows rather than results
+# on human and tara; the bin measurement still stands where only ascii fails.
 #
 # Output: $ROOT/all_datasets.csv   (key = file index, label = file name)
 
@@ -22,7 +23,7 @@ DATASETS=(
     "tara:$DATA_ROOT/dataset_metagenome_tara/fof.list:10:21:-fq"
 )
 
-bench_init all_datasets "tuna kmc"
+bench_init all_datasets "tuna kmc fastk"
 
 for spec in "${DATASETS[@]}"; do
     IFS=: read -r ds fof maxn m fmt <<< "$spec"
@@ -38,6 +39,12 @@ for spec in "${DATASETS[@]}"; do
         echo "  [$i] $(basename "$f")"
         run_tuna "$ds" "$i" "$(basename "$f")" "$f"
         run_kmc  "$ds" "$i" "$(basename "$f")" "$f" "$fmt"
+        # FastK takes a fof of extension-safe symlinks, so build a one-entry
+        # one for this file rather than handing it the path directly.
+        one="$AUX/onefof_${ds}_${i}.list"; printf '%s\n' "$f" > "$one"
+        fkf="$AUX/fastkfof_${ds}_${i}.list"; fastk_fof "$one" 1 "$fkf"
+        run_fastk "$ds" "$i" "$(basename "$f")" "$fkf"
+        rm -f "$one" "$fkf"
     done < "$fof"
 done
 

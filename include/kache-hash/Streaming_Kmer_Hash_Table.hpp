@@ -552,7 +552,9 @@ public:
     void init_packed_known_out(const uint8_t* packed)
     {
         v.from_packed_2bit_msb(packed);
+#ifndef TUNA_NO_PHASE2_RH
         rh.init_packed_2bit_msb_known_out(packed);
+#endif
         use_precomp_ = false;
     }
 
@@ -627,9 +629,13 @@ public:
 
     void advance_known_out(const DNA::Base b)
     {
+#ifndef TUNA_NO_PHASE2_RH
         const DNA::Base out = v.kmer().base_at(k - 1);
+#endif
         v.roll_forward(b);
+#ifndef TUNA_NO_PHASE2_RH
         rh.advance_known_out(out, b);
+#endif
     }
 
     // Advances the window by one ASCII character `ch`.
